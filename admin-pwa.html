@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin">
+  <meta name="theme-color" content="#0f0f0f">
+  <title>Admin — Restaurant</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23080808'/><path d='M16 6 L25 26 H21 L19 21 H13 L11 26 H7 Z M16 11.5 L14.1 18 H17.9 Z' fill='%23c8a96e'/></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2a2a2a;
+      --gold: #c9a84c;
+      --gold-dim: rgba(201,168,76,0.12);
+      --text: #f0ece4;
+      --text-muted: #888;
+      --text-dim: #555;
+      --green: #4ade80;
+      --green-dim: rgba(74,222,128,0.12);
+      --orange: #fb923c;
+      --orange-dim: rgba(251,146,60,0.12);
+      --red: #f87171;
+      --red-dim: rgba(248,113,113,0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96,165,250,0.12);
+      --nav-h: 70px;
+      --header-h: 60px;
+      --radius: 14px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { height:100%; overflow:hidden; font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); }
+
+    /* ── DESKTOP : boutons limités en largeur ── */
+    @media (min-width: 768px) {
+      .submit-btn { max-width:320px; }
+      .btn-notifier { max-width:320px; }
+      .btn-reset { max-width:320px; }
+      .action-btn { max-width:180px; }
+    }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      position:fixed; inset:0; background:var(--bg);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:9999; padding:32px;
+    }
+    #login-screen .logo { font-size:1.6rem; font-weight:700; letter-spacing:2px; color:var(--gold); margin-bottom:8px; }
+    #login-screen .sub { font-size:0.78rem; color:var(--text-muted); letter-spacing:3px; text-transform:uppercase; margin-bottom:48px; }
+    #login-screen input {
+      width:100%; max-width:340px; padding:16px; background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); color:var(--text); font-size:1rem; font-family:'Inter',sans-serif;
+      text-align:center; letter-spacing:4px; outline:none; margin-bottom:16px;
+    }
+    #login-screen input:focus { border-color:var(--gold); }
+    #login-screen .login-btn {
+      width:100%; max-width:340px; padding:16px; background:var(--gold); border:none; border-radius:var(--radius);
+      color:#000; font-size:0.9rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+      cursor:pointer;
+    }
+    #login-screen .login-error { color:var(--red); font-size:0.8rem; margin-top:12px; display:none; }
+
+    /* ── APP SHELL ── */
+    #app { height:100%; display:flex; flex-direction:column; }
+    #app.hidden { display:none; }
+
+    /* ── HEADER ── */
+    .app-header {
+      height:var(--header-h); background:var(--bg); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; flex-shrink:0; position:relative; z-index:10;
+    }
+    .app-header .resto-name { font-size:1rem; font-weight:600; letter-spacing:1px; color:var(--text); }
+    .app-header .date-badge {
+      font-size:0.72rem; color:var(--text-muted); letter-spacing:1px;
+      background:var(--surface); padding:4px 12px; border-radius:20px;
+    }
+    .notif-dot {
+      width:8px; height:8px; background:var(--red); border-radius:50%;
+      position:absolute; top:14px; right:20px;
+    }
+
+    /* ── VIEWS ── */
+    .views { flex:1; overflow:hidden; position:relative; }
+    .view {
+      position:absolute; inset:0; overflow-y:auto; padding:16px 16px calc(var(--nav-h) + 16px);
+      display:none;
+    }
+    .view.active { display:block; }
+    .view::-webkit-scrollbar { display:none; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      height:var(--nav-h); background:var(--surface); border-top:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-around;
+      flex-shrink:0; padding:0 8px; padding-bottom:env(safe-area-inset-bottom);
+      position:relative; z-index:10;
+    }
+    .nav-item {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:4px; cursor:pointer; padding:8px 0; border:none; background:none; color:var(--text-muted);
+      transition:color 0.2s;
+    }
+    .nav-item.active { color:var(--gold); }
+    .nav-item svg { width:22px; height:22px; }
+    .nav-item span { font-size:0.62rem; letter-spacing:1px; text-transform:uppercase; font-weight:600; }
+    .nav-fab {
+      width:56px; height:56px; background:var(--gold); border-radius:50%; border:none;
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      box-shadow:0 4px 20px rgba(201,168,76,0.4); flex-shrink:0;
+      transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .nav-fab:active { transform:scale(0.92); box-shadow:0 2px 10px rgba(201,168,76,0.3); }
+    .nav-fab svg { width:24px; height:24px; color:#000; }
+
+    /* ── CARDS ── */
+    .card {
+      background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
+      padding:16px; margin-bottom:12px;
+    }
+    .card-row { display:flex; align-items:center; justify-content:space-between; }
+    .section-title {
+      font-size:0.68rem; color:var(--text-muted); letter-spacing:2.5px; text-transform:uppercase;
+      font-weight:600; margin:20px 0 10px;
+    }
+    .section-title:first-child { margin-top:4px; }
+
+    /* ── STATS ROW ── */
+    .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+    .stat-card {
+      background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
+      padding:14px 10px; text-align:center;
+    }
+    .stat-num { font-size:1.6rem; font-weight:700; color:var(--gold); line-height:1; }
+    .stat-lbl { font-size:0.6rem; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-top:4px; }
+
+    /* ── RESERVATION ITEM ── */
+    .resa-item {
+      background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
+      padding:14px 16px; margin-bottom:10px; cursor:pointer;
+      transition:border-color 0.2s;
+    }
+    .resa-item:active { border-color:var(--gold); }
+    .resa-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .resa-nom { font-size:0.95rem; font-weight:600; }
+    .resa-badge {
+      font-size:0.62rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+      padding:3px 10px; border-radius:20px;
+    }
+    .badge-confirmee { background:var(--green-dim); color:var(--green); }
+    .badge-en_attente { background:var(--orange-dim); color:var(--orange); }
+    .badge-arrivee { background:var(--blue-dim); color:var(--blue); }
+    .badge-annulee { background:var(--red-dim); color:var(--red); }
+    .resa-info { display:flex; gap:16px; }
+    .resa-detail { font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:4px; }
+    .resa-actions { display:flex; gap:8px; margin-top:12px; }
+    .action-btn {
+      flex:1; padding:9px; border-radius:10px; border:none; font-size:0.72rem; font-weight:600;
+      letter-spacing:0.5px; cursor:pointer; transition:opacity 0.15s;
+    }
+    .action-btn:active { opacity:0.7; }
+    .btn-arrive { background:var(--blue-dim); color:var(--blue); }
+    .btn-annuler { background:var(--red-dim); color:var(--red); }
+    .btn-sms { background:var(--green-dim); color:var(--green); }
+    .btn-confirmer { background:var(--gold-dim); color:var(--gold); }
+
+    /* ── TABLE GRID ── */
+    .tables-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .table-cell {
+      background:var(--surface); border-radius:var(--radius); border:2px solid var(--border);
+      padding:14px 8px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative;
+    }
+    .table-cell.libre { border-color:var(--green); background:var(--green-dim); }
+    .table-cell.reservee { border-color:var(--orange); background:var(--orange-dim); }
+    .table-cell.occupee { border-color:var(--red); background:var(--red-dim); }
+    .table-num { font-size:1.2rem; font-weight:700; }
+    .table-cap { font-size:0.65rem; color:var(--text-muted); margin-top:2px; }
+    .table-statut { font-size:0.6rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
+    .table-cell.libre .table-statut { color:var(--green); }
+    .table-cell.reservee .table-statut { color:var(--orange); }
+    .table-cell.occupee .table-statut { color:var(--red); }
+    .table-nom { font-size:0.62rem; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* ── WAITLIST ── */
+    .wait-item {
+      background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
+      padding:14px 16px; margin-bottom:10px;
+    }
+    .wait-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .wait-nom { font-size:0.95rem; font-weight:600; }
+    .wait-time { font-size:0.72rem; color:var(--text-muted); }
+    .btn-notifier {
+      width:100%; padding:10px; background:var(--gold); border:none; border-radius:10px;
+      color:#000; font-size:0.78rem; font-weight:700; letter-spacing:1px; cursor:pointer;
+    }
+    .btn-notifier:active { opacity:0.8; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:500;
+      display:flex; align-items:flex-end; padding:0;
+      opacity:0; pointer-events:none; transition:opacity 0.25s;
+    }
+    .modal-overlay.active { opacity:1; pointer-events:all; }
+    .modal {
+      background:var(--surface); width:100%; border-radius:20px 20px 0 0;
+      padding:24px 20px 40px; max-height:90vh; overflow-y:auto;
+      transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .modal-overlay.active .modal { transform:translateY(0); }
+    .modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 24px; }
+    .modal-title { font-size:1.1rem; font-weight:700; margin-bottom:24px; color:var(--text); }
+    .form-group { margin-bottom:16px; }
+    .form-label { font-size:0.7rem; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; display:block; }
+    .form-input {
+      width:100%; padding:13px 14px; background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); font-size:0.9rem; font-family:'Inter',sans-serif;
+      outline:none; transition:border-color 0.2s;
+    }
+    .form-input:focus { border-color:var(--gold); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-select {
+      width:100%; padding:13px 14px; background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); font-size:0.9rem; font-family:'Inter',sans-serif;
+      outline:none; appearance:none;
+    }
+    .submit-btn {
+      width:100%; padding:15px; background:var(--gold); border:none; border-radius:12px;
+      color:#000; font-size:0.9rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+      cursor:pointer; margin-top:8px;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align:center; padding:48px 20px; color:var(--text-dim); }
+    .empty-state .e-icon { font-size:2.5rem; margin-bottom:12px; }
+    .empty-state p { font-size:0.85rem; line-height:1.6; }
+
+    /* ── TOAST ── */
+    .toast {
+      position:fixed; bottom:calc(var(--nav-h) + 16px); left:50%; transform:translateX(-50%) translateY(20px);
+      background:var(--surface2); border:1px solid var(--border); border-radius:24px;
+      padding:10px 20px; font-size:0.82rem; color:var(--text); white-space:nowrap;
+      z-index:999; opacity:0; transition:all 0.3s; pointer-events:none;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* ── FILTER TABS ── */
+    .filter-tabs { display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; }
+    .filter-tabs::-webkit-scrollbar { display:none; }
+    .filter-tab {
+      flex-shrink:0; padding:7px 16px; border-radius:20px; border:1px solid var(--border);
+      background:var(--surface); color:var(--text-muted); font-size:0.75rem; font-weight:600;
+      cursor:pointer; letter-spacing:0.5px; transition:all 0.2s;
+    }
+    .filter-tab.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+
+    /* ── SMS BANNER ── */
+    .sms-banner {
+      background:var(--green-dim); border:1px solid var(--green); border-radius:var(--radius);
+      padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:10px;
+    }
+    .sms-banner span { font-size:0.8rem; color:var(--green); flex:1; }
+    .sms-send-all {
+      background:var(--green); color:#000; border:none; border-radius:8px;
+      padding:6px 14px; font-size:0.72rem; font-weight:700; cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="logo">ASSISTLY</div>
+  <div class="sub">Espace restaurant</div>
+  <input type="password" id="pwd-input" placeholder="Mot de passe" autocomplete="current-password">
+  <button class="login-btn" onclick="tryLogin()">Accéder</button>
+  <div class="login-error" id="login-error">Mot de passe incorrect</div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="resto-name" id="header-name">Le Gourmet</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="syncFromSheet()" title="Synchroniser depuis le site" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text-muted);padding:4px 6px;border-radius:8px;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">⟳</button>
+      <div class="date-badge" id="header-date"></div>
+    </div>
+  </div>
+
+  <!-- VIEWS -->
+  <div class="views">
+
+    <!-- ACCUEIL -->
+    <div class="view active" id="view-home">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-lbl">Réserv.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-libres" style="color:var(--green)">0</div>
+          <div class="stat-lbl">Tables libres</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-attente" style="color:var(--orange)">0</div>
+          <div class="stat-lbl">En attente</div>
+        </div>
+      </div>
+
+      <div class="sms-banner" id="sms-banner" style="display:none">
+        <span id="sms-banner-text">Rappels SMS à envoyer</span>
+        <button class="sms-send-all" onclick="sendAllReminders()">Envoyer</button>
+      </div>
+
+      <div class="section-title">Réservations du jour</div>
+      <div id="home-resas"></div>
+    </div>
+
+    <!-- TABLES -->
+    <div class="view" id="view-tables">
+      <div class="section-title">État des tables</div>
+      <div class="tables-grid" id="tables-grid"></div>
+    </div>
+
+    <!-- RÉSERVATIONS -->
+    <div class="view" id="view-resas">
+      <div class="filter-tabs" id="filter-tabs">
+        <div class="filter-tab active" onclick="setFilter('aujourd_hui',this)">Aujourd'hui</div>
+        <div class="filter-tab" onclick="setFilter('demain',this)">Demain</div>
+        <div class="filter-tab" onclick="setFilter('tout',this)">Tout</div>
+      </div>
+      <div id="resas-list"></div>
+    </div>
+
+    <!-- ATTENTE -->
+    <div class="view" id="view-attente">
+      <div class="section-title">Liste d'attente</div>
+      <div id="waitlist-list"></div>
+      <button class="submit-btn" style="margin-top:16px" onclick="openWaitlistModal()">+ Ajouter à la liste</button>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="switchView('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Accueil</span>
+    </button>
+    <button class="nav-item" id="nav-tables" onclick="switchView('tables')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Tables</span>
+    </button>
+    <button class="nav-fab" onclick="openAddModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="nav-item" id="nav-resas" onclick="switchView('resas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Agenda</span>
+    </button>
+    <button class="nav-item" id="nav-attente" onclick="switchView('attente')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Attente</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- MODAL AJOUT RÉSERVATION -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Nouvelle réservation</div>
+    <div class="form-group">
+      <label class="form-label">Nom complet</label>
+      <input type="text" class="form-input" id="f-nom" placeholder="Marie Dupont">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Téléphone</label>
+      <input type="tel" class="form-input" id="f-tel" placeholder="06-XX-XX-XX-XX" maxlength="14">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="f-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Heure</label>
+        <select class="form-select" id="f-heure">
+          <option>11h30</option><option>12h00</option><option>12h30</option>
+          <option>13h00</option><option>13h30</option><option>18h15</option>
+          <option>18h30</option><option>19h00</option><option selected>19h30</option>
+          <option>20h00</option><option>20h30</option><option>21h00</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Couverts</label>
+        <select class="form-select" id="f-couverts">
+          <option>1</option><option>2</option><option selected>3</option>
+          <option>4</option><option>5</option><option>6</option><option>8</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Table</label>
+        <select class="form-select" id="f-table"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source</label>
+      <select class="form-select" id="f-source">
+        <option value="telephone">Téléphone</option>
+        <option value="comptoir">Comptoir</option>
+        <option value="online">En ligne</option>
+      </select>
+    </div>
+    <button class="submit-btn" onclick="saveReservation()">Confirmer la réservation</button>
+    <button class="action-btn btn-annuler" style="width:100%;margin-top:10px;padding:12px" onclick="closeModal('modal-add')">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL LISTE D'ATTENTE -->
+<div class="modal-overlay" id="modal-waitlist">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Ajouter à la liste d'attente</div>
+    <div class="form-group">
+      <label class="form-label">Nom complet</label>
+      <input type="text" class="form-input" id="w-nom" placeholder="Paul Martin">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Téléphone</label>
+      <input type="tel" class="form-input" id="w-tel" placeholder="06-XX-XX-XX-XX" maxlength="14">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date souhaitée</label>
+        <input type="date" class="form-input" id="w-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Couverts</label>
+        <select class="form-select" id="w-couverts">
+          <option>1</option><option selected>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="saveWaitlist()">Ajouter à la liste</button>
+    <button class="action-btn btn-annuler" style="width:100%;margin-top:10px;padding:12px" onclick="closeModal('modal-waitlist')">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL TABLE DETAIL -->
+<div class="modal-overlay" id="modal-table">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-table-title">Table 1</div>
+    <div id="modal-table-content"></div>
+    <button class="submit-btn" style="margin-top:12px" onclick="closeModal('modal-table')">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL PROFIL CLIENT -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Profil client</div>
+    <div id="modal-profile-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────
+const PASSWORD_HASH = '43c27b4e263fa191a6a7ec198cd4d5b47d17413c49d77dc533a01720707e3202'; // demo2026
+const TWILIO_SID = 'AC9d232ff040877c3d0b36391bd08e32bc';
+const TWILIO_FROM = '+17542407101';
+const MAKE_WEBHOOK = 'https://hook.eu1.make.com/e71v5spefelk6fp13lgelg6bsfdrhgla';
+const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqwOIcJ7M-eqDKK3QOLALLKZGKVtxC9Zu0IAOwO7AU6ad-LZSJNywOKpnn-XJdJtVuGO1tWRmZm_i9/pub?gid=0&single=true&output=csv';
+
+const TABLES_CONFIG = [
+  {id:1,capacite:2,label:'T1'},{id:2,capacite:2,label:'T2'},
+  {id:3,capacite:4,label:'T3'},{id:4,capacite:4,label:'T4'},
+  {id:5,capacite:4,label:'T5'},{id:6,capacite:6,label:'T6'},
+  {id:7,capacite:6,label:'T7'},{id:8,capacite:8,label:'T8'},
+  {id:9,capacite:2,label:'T9'},{id:10,capacite:4,label:'T10'},
+  {id:11,capacite:4,label:'T11'},{id:12,capacite:2,label:'T12'},
+];
+
+// ─────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────
+function getData(key, def) {
+  try { return JSON.parse(localStorage.getItem('admin_'+key)) || def; } catch(e) { return def; }
+}
+function setData(key, val) { localStorage.setItem('admin_'+key, JSON.stringify(val)); }
+
+function seedDemoData() {
+  if (getData('seeded', false)) return;
+  const today = todayStr();
+  const tomorrow = tomorrowStr();
+  const resas = [
+    {id:uid(),nom:'Marie Dupont',telephone:'06-12-34-56-78',date:today,heure:'12h00',couverts:2,table:1,statut:'confirmee',source:'online',reminderSent:false},
+    {id:uid(),nom:'Thomas Bernard',telephone:'06-23-45-67-89',date:today,heure:'12h30',couverts:4,table:3,statut:'arrivee',source:'telephone',reminderSent:true},
+    {id:uid(),nom:'Sophie Martin',telephone:'06-34-56-78-90',date:today,heure:'19h30',couverts:2,table:2,statut:'confirmee',source:'online',reminderSent:false},
+    {id:uid(),nom:'Lucas Petit',telephone:'06-45-67-89-01',date:today,heure:'20h00',couverts:6,table:6,statut:'en_attente',source:'telephone',reminderSent:false},
+    {id:uid(),nom:'Clara Moreau',telephone:'06-56-78-90-12',date:today,heure:'20h30',couverts:4,table:5,statut:'confirmee',source:'online',reminderSent:false},
+    {id:uid(),nom:'Paul Girard',telephone:'06-67-89-01-23',date:tomorrow,heure:'19h00',couverts:2,table:9,statut:'confirmee',source:'online',reminderSent:false},
+    {id:uid(),nom:'Emma Lefebvre',telephone:'06-78-90-12-34',date:tomorrow,heure:'20h00',couverts:4,table:4,statut:'confirmee',source:'telephone',reminderSent:false},
+  ];
+  const waitlist = [
+    {id:uid(),nom:'Antoine Rousseau',telephone:'06-11-22-33-44',date:today,couverts:3,createdAt:Date.now()-3600000},
+    {id:uid(),nom:'Julie Lambert',telephone:'06-55-66-77-88',date:tomorrow,couverts:2,createdAt:Date.now()-1800000},
+  ];
+  setData('resas', resas);
+  setData('waitlist', waitlist);
+  setData('seeded', true);
+}
+
+// ─────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────
+function uid() { return Math.random().toString(36).slice(2,10); }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function tomorrowStr() { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function fmtDate(str) {
+  if (!str) return '';
+  const d = new Date(str+'T12:00:00');
+  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// Auto-format phone
+document.querySelectorAll('[id^="f-tel"],[id^="w-tel"]').forEach(el=>{
+  el.addEventListener('input',function(){
+    const digits=this.value.replace(/\D/g,'').slice(0,10);
+    const parts=digits.match(/.{1,2}/g);
+    this.value=parts?parts.join('-'):'';
+  });
+});
+
+// ─────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────
+async function tryLogin() {
+  const pwd = document.getElementById('pwd-input').value;
+  const enc = new TextEncoder().encode(pwd);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if (hash === PASSWORD_HASH) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.remove('hidden');
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryLogin();
+});
+
+// ─────────────────────────────────────────
+// GOOGLE SHEETS SYNC
+// ─────────────────────────────────────────
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function convertDate(d) {
+  if (!d) return todayStr();
+  d = String(d).trim();
+  // Already ISO yyyy-mm-dd (with or without time)
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0,10);
+  // dd/mm/yyyy or dd/mm/yy
+  const slash = d.split('/');
+  if (slash.length === 3) {
+    let [day, month, year] = slash;
+    if (year.length === 2) year = '20'+year;
+    return year+'-'+month.padStart(2,'0')+'-'+day.padStart(2,'0');
+  }
+  // dd-mm-yyyy
+  const dash = d.split('-');
+  if (dash.length === 3 && dash[0].length <= 2) {
+    return dash[2]+'-'+dash[1].padStart(2,'0')+'-'+dash[0].padStart(2,'0');
+  }
+  // Fallback: try JS Date parse
+  try {
+    const parsed = new Date(d);
+    if (!isNaN(parsed)) return parsed.toISOString().slice(0,10);
+  } catch(e) {}
+  return todayStr();
+}
+
+async function fetchSheetReservations() {
+  try {
+    const resp = await fetch(SHEETS_URL + '&t=' + Date.now());
+    if (!resp.ok) return [];
+    const text = await resp.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    if (!lines.length) return [];
+    // No header row — parse all rows
+    return lines.map(line => {
+      const cols = parseCSVLine(line);
+        // Columns: A=id B=nom C=date D=heure E=personnes F=telephone G=restaurant H=timestamp I=statut
+      const nom       = cols[1] || '';
+      const date      = convertDate(cols[2] || '');
+      const heure     = cols[3] || '19h00';
+      const couverts  = parseInt(cols[4]) || 2;
+      const telephone = cols[5] || '';
+      // Use Make.com row id (col A) as stable ID
+      const id = 'sheet_' + (cols[0] || '').replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+      if (!nom || !telephone) return null;
+      return { id, nom, telephone, date, heure, couverts, table: null, statut: 'en_attente', source: 'online', reminderSent: false };
+    }).filter(Boolean);
+  } catch(e) {
+    console.warn('Sheet sync error:', e);
+    return [];
+  }
+}
+
+async function syncFromSheet() {
+  const sheetResas = await fetchSheetReservations();
+  console.log('[Sheets sync] lignes reçues:', sheetResas.length, sheetResas);
+  if (!sheetResas.length) return;
+  const local = getData('resas', []);
+  const existingIds = new Set(local.map(r => r.id));
+  const newOnes = sheetResas.filter(r => !existingIds.has(r.id));
+  if (!newOnes.length) return;
+  // Auto-assign tables to new sheet reservations
+  const tempMerged = [...local];
+  newOnes.forEach(r => {
+    r.table = assignBestTable(r.couverts, r.date, null);
+    tempMerged.push(r);
+  });
+  const merged = tempMerged;
+  setData('resas', merged);
+  renderAll();
+  showToast(newOnes.length + ' nouvelle'+(newOnes.length>1?'s':'')+' réservation'+(newOnes.length>1?'s':'')+' synchronisée'+(newOnes.length>1?'s':'')+' ✓');
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+function initApp() {
+  seedDemoData();
+  // Sync Google Sheets reservations
+  syncFromSheet();
+  // Header date
+  const d = new Date();
+  document.getElementById('header-date').textContent =
+    d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}).toUpperCase();
+  // Set default date on form
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('w-date').value = todayStr();
+  // Populate table select
+  const sel = document.getElementById('f-table');
+  sel.innerHTML = '<option value="">Auto</option>';
+  TABLES_CONFIG.forEach(t=>{
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.label + ' ('+t.capacite+'p)';
+    sel.appendChild(o);
+  });
+  renderAll();
+}
+
+function renderAll() {
+  renderHome();
+  renderTables();
+  renderResas();
+  renderWaitlist();
+}
+
+// ─────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────
+function renderHome() {
+  const resas = getData('resas', []);
+  const today = todayStr();
+  const todayResas = resas.filter(r=>r.date===today && r.statut!=='annulee');
+  const libres = TABLES_CONFIG.length - getOccupiedTables().size;
+  const attente = getData('waitlist',[]).length;
+
+  document.getElementById('stat-total').textContent = todayResas.length;
+  document.getElementById('stat-libres').textContent = libres;
+  document.getElementById('stat-attente').textContent = attente;
+
+  // SMS banner
+  const toRemind = todayResas.filter(r=>!r.reminderSent && r.statut==='confirmee');
+  const banner = document.getElementById('sms-banner');
+  if (toRemind.length > 0) {
+    banner.style.display = 'flex';
+    document.getElementById('sms-banner-text').textContent =
+      toRemind.length + ' rappel'+(toRemind.length>1?'s':'')+' SMS à envoyer';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Today's reservations
+  const container = document.getElementById('home-resas');
+  if (todayResas.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="e-icon">📅</div><p>Aucune réservation aujourd\'hui</p></div>';
+    return;
+  }
+  todayResas.sort((a,b)=>a.heure.localeCompare(b.heure));
+  container.innerHTML = todayResas.map(r=>resaHTML(r)).join('');
+}
+
+function getOccupiedTables() {
+  const resas = getData('resas', []);
+  const today = todayStr();
+  const occupied = new Set();
+  resas.filter(r=>r.date===today && (r.statut==='confirmee'||r.statut==='arrivee'||r.statut==='en_attente'))
+       .forEach(r=>{ if(r.table) occupied.add(parseInt(r.table)); });
+  return occupied;
+}
+
+// ─────────────────────────────────────────
+// TABLES
+// ─────────────────────────────────────────
+function renderTables() {
+  const occupied = getOccupiedTables();
+  const resas = getData('resas', []);
+  const today = todayStr();
+  const grid = document.getElementById('tables-grid');
+  grid.innerHTML = TABLES_CONFIG.map(t=>{
+    const resa = resas.find(r=>r.date===today && parseInt(r.table)===t.id && (r.statut==='confirmee'||r.statut==='arrivee'||r.statut==='en_attente'));
+    let statut = 'libre';
+    if (resa) statut = resa.statut==='arrivee'?'occupee':'reservee';
+    const statutLabel = statut==='libre'?'Libre':statut==='occupee'?'Occupée':'Réservée';
+    return `<div class="table-cell ${statut}" onclick="showTableDetail(${t.id})">
+      <div class="table-num">${t.label}</div>
+      <div class="table-cap">${t.capacite} couverts</div>
+      <div class="table-statut">${statutLabel}</div>
+      <div class="table-nom">${resa?resa.nom:''}</div>
+    </div>`;
+  }).join('');
+}
+
+function showTableDetail(tableId) {
+  const t = TABLES_CONFIG.find(x=>x.id===tableId);
+  const resas = getData('resas',[]);
+  const today = todayStr();
+  const resa = resas.find(r=>r.date===today && parseInt(r.table)===tableId && r.statut!=='annulee');
+  document.getElementById('modal-table-title').textContent = t.label + ' — '+t.capacite+' couverts';
+  const content = document.getElementById('modal-table-content');
+  if (!resa) {
+    content.innerHTML = '<div style="text-align:center;padding:24px;color:var(--green);font-size:0.9rem;">✓ Table libre</div>'+
+      '<button class="submit-btn" onclick="closeModal(\'modal-table\');openAddModalForTable('+tableId+')">Assigner une réservation</button>';
+  } else {
+    content.innerHTML = `
+      <div class="card">
+        <div style="font-size:1rem;font-weight:600;margin-bottom:8px">${resa.nom}</div>
+        <div class="resa-info">
+          <div class="resa-detail">🕐 ${resa.heure}</div>
+          <div class="resa-detail">👥 ${resa.couverts} pers.</div>
+          <div class="resa-detail">📞 ${resa.telephone}</div>
+        </div>
+        <div class="resa-actions">
+          ${resa.statut!=='arrivee'?`<button class="action-btn btn-arrive" onclick="changeStatut('${resa.id}','arrivee')">Arrivé</button>`:''}
+          <button class="action-btn btn-annuler" onclick="changeStatut('${resa.id}','annulee')">Annuler</button>
+          ${!resa.reminderSent?`<button class="action-btn btn-sms" onclick="sendReminder('${resa.id}')">SMS rappel</button>`:'<span style="font-size:0.7rem;color:var(--text-muted);padding:8px">SMS envoyé ✓</span>'}
+        </div>
+      </div>`;
+  }
+  openModal('modal-table');
+}
+
+// ─────────────────────────────────────────
+// RESERVATIONS
+// ─────────────────────────────────────────
+let currentFilter = 'aujourd_hui';
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderResas();
+}
+function renderResas() {
+  const resas = getData('resas', []);
+  const today = todayStr();
+  const tomorrow = tomorrowStr();
+  let filtered = resas;
+  if (currentFilter === 'aujourd_hui') filtered = resas.filter(r=>r.date===today);
+  else if (currentFilter === 'demain') filtered = resas.filter(r=>r.date===tomorrow);
+  filtered.sort((a,b)=>a.date.localeCompare(b.date)||a.heure.localeCompare(b.heure));
+  const container = document.getElementById('resas-list');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="e-icon">📭</div><p>Aucune réservation</p></div>';
+    return;
+  }
+  container.innerHTML = filtered.map(r=>resaHTML(r)).join('');
+}
+
+function resaHTML(r) {
+  const labels = {confirmee:'Confirmée',en_attente:'En attente',arrivee:'Arrivée',annulee:'Annulée'};
+  const tableLabel = r.table ? TABLES_CONFIG.find(t=>t.id===parseInt(r.table))?.label||'' : '';
+  return `<div class="resa-item" id="resa-${r.id}">
+    <div class="resa-top">
+      <div class="resa-nom" onclick="openClientProfile('${r.id}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px">${r.nom}</div>
+      <span class="resa-badge badge-${r.statut}">${labels[r.statut]||r.statut}</span>
+    </div>
+    <div class="resa-info">
+      <div class="resa-detail">🕐 ${r.heure}</div>
+      <div class="resa-detail">👥 ${r.couverts}</div>
+      ${tableLabel?`<div class="resa-detail">🪑 ${tableLabel}</div>`:''}
+      <div class="resa-detail">📞 ${r.telephone}</div>
+    </div>
+    ${r.statut!=='annulee'?`<div class="resa-actions">
+      ${r.statut==='en_attente'?`<button class="action-btn btn-confirmer" onclick="changeStatut('${r.id}','confirmee')">Confirmer</button>`:''}
+      ${r.statut==='confirmee'?`<button class="action-btn btn-arrive" onclick="changeStatut('${r.id}','arrivee')">Arrivé</button>`:''}
+      ${!r.reminderSent&&r.statut!=='arrivee'?`<button class="action-btn btn-sms" onclick="sendReminder('${r.id}')">SMS rappel</button>`:`<span style='font-size:0.68rem;color:var(--text-muted);padding:8px;align-self:center'>${r.reminderSent?'SMS ✓':''}</span>`}
+      <button class="action-btn btn-annuler" onclick="changeStatut('${r.id}','annulee')">Annuler</button>
+    </div>`:''}
+  </div>`;
+}
+
+function openClientProfile(id) {
+  const resas = getData('resas',[]);
+  const r = resas.find(x=>x.id===id);
+  if (!r) return;
+  const labels = {confirmee:'Confirmée',en_attente:'En attente',arrivee:'Arrivée',annulee:'Annulée'};
+  const tableLabel = r.table ? (TABLES_CONFIG.find(t=>t.id===parseInt(r.table))?.label||'—') : '—';
+  const histResas = resas.filter(x=>x.telephone===r.telephone);
+  const visits = histResas.length;
+  const initials = r.nom.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  const el = document.getElementById('modal-profile-content');
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#000;flex-shrink:0">${initials}</div>
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--text)">${r.nom}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">📞 ${r.telephone}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">${visits} visite${visits>1?'s':''} enregistrée${visits>1?'s':''}</div>
+      </div>
+    </div>
+    <div style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.82rem">
+      <div><span style="color:var(--text-muted)">Date</span><br><strong>${fmtDate(r.date)}</strong></div>
+      <div><span style="color:var(--text-muted)">Heure</span><br><strong>${r.heure}</strong></div>
+      <div><span style="color:var(--text-muted)">Couverts</span><br><strong>${r.couverts} pers.</strong></div>
+      <div><span style="color:var(--text-muted)">Table</span><br><strong>${tableLabel}</strong></div>
+      <div style="grid-column:1/-1"><span style="color:var(--text-muted)">Statut</span><br>
+        <span style="padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;background:var(--${r.statut==='confirmee'?'green':'orange'}-dim);color:var(--${r.statut==='confirmee'?'green':'orange'})">${labels[r.statut]||r.statut}</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${r.statut==='en_attente'?`<button class="action-btn btn-confirmer" onclick="changeStatut('${r.id}','confirmee');closeModal('modal-profile')">Confirmer</button>`:''}
+      ${r.statut==='confirmee'?`<button class="action-btn btn-arrive" onclick="changeStatut('${r.id}','arrivee');closeModal('modal-profile')">Arrivé</button>`:''}
+      ${!r.reminderSent&&r.statut!=='arrivee'&&r.statut!=='annulee'?`<button class="action-btn btn-sms" onclick="sendReminder('${r.id}');closeModal('modal-profile')">SMS rappel</button>`:''}
+      ${r.statut!=='annulee'?`<button class="action-btn btn-annuler" onclick="changeStatut('${r.id}','annulee');closeModal('modal-profile')">Annuler</button>`:''}
+      <button class="action-btn" style="background:var(--card);color:var(--text-muted);border:1px solid var(--border)" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>`;
+  openModal('modal-profile');
+}
+
+function changeStatut(id, statut) {
+  const resas = getData('resas',[]);
+  const idx = resas.findIndex(r=>r.id===id);
+  if (idx===-1) return;
+  resas[idx].statut = statut;
+  setData('resas', resas);
+  renderAll();
+  closeModal('modal-table');
+  showToast(statut==='arrivee'?'Client marqué arrivé ✓':statut==='annulee'?'Réservation annulée':'Confirmé ✓');
+}
+
+// ─────────────────────────────────────────
+// WAITLIST
+// ─────────────────────────────────────────
+function renderWaitlist() {
+  const list = getData('waitlist',[]);
+  const container = document.getElementById('waitlist-list');
+  if (list.length===0){
+    container.innerHTML='<div class="empty-state"><div class="e-icon">✅</div><p>Aucune personne en attente</p></div>';
+    return;
+  }
+  container.innerHTML = list.map(w=>`
+    <div class="wait-item">
+      <div class="wait-top">
+        <div class="wait-nom">${w.nom}</div>
+        <div class="wait-time">${fmtDate(w.date)} · ${w.couverts} pers.</div>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">📞 ${w.telephone}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-notifier" style="flex:2" onclick="notifyWaitlist('${w.id}')">📱 Notifier par SMS</button>
+        <button class="action-btn btn-annuler" style="flex:1;padding:10px" onclick="removeWaitlist('${w.id}')">Retirer</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeWaitlist(id) {
+  let list = getData('waitlist',[]);
+  list = list.filter(w=>w.id!==id);
+  setData('waitlist', list);
+  renderAll();
+  showToast('Retiré de la liste');
+}
+
+function notifyWaitlist(id) {
+  const list = getData('waitlist',[]);
+  const w = list.find(x=>x.id===id);
+  if (!w) return;
+  const msg = `Bonne nouvelle ! Une table s'est libérée au restaurant pour ${fmtDate(w.date)}. Répondez OUI pour confirmer, NON pour décliner.`;
+  sendSMS(w.telephone, msg);
+  removeWaitlist(id);
+  showToast('SMS envoyé à '+w.nom+' ✓');
+}
+
+// ─────────────────────────────────────────
+// SMS
+// ─────────────────────────────────────────
+function sendReminder(resaId) {
+  const resas = getData('resas',[]);
+  const r = resas.find(x=>x.id===resaId);
+  if (!r) return;
+  const msg = `Rappel : votre table est réservée aujourd'hui à ${r.heure} (${r.couverts} pers.). Répondez OUI pour confirmer, NON pour annuler. — Le Gourmet`;
+  sendSMS(r.telephone, msg);
+  const idx = resas.findIndex(x=>x.id===resaId);
+  resas[idx].reminderSent = true;
+  setData('resas', resas);
+  renderAll();
+  showToast('SMS rappel envoyé à '+r.nom+' ✓');
+}
+
+function sendAllReminders() {
+  const resas = getData('resas',[]);
+  const today = todayStr();
+  let count = 0;
+  resas.forEach((r,i)=>{
+    if (r.date===today && !r.reminderSent && r.statut==='confirmee') {
+      const msg = `Rappel : votre table est réservée ce soir à ${r.heure} (${r.couverts} pers.). Répondez OUI pour confirmer, NON pour annuler. — Le Gourmet`;
+      sendSMS(r.telephone, msg);
+      resas[i].reminderSent = true;
+      count++;
+    }
+  });
+  setData('resas', resas);
+  renderAll();
+  showToast(count+' SMS envoyé'+(count>1?'s':'')+' ✓');
+}
+
+function sendSMS(tel, msg) {
+  // Appel Make.com webhook → Make.com appelle Twilio
+  const telClean = tel.replace(/-/g,'');
+  const telFull = telClean.startsWith('0') ? '+33'+telClean.slice(1) : tel;
+  fetch(MAKE_WEBHOOK, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'sms', to: telFull, message: msg, from: TWILIO_FROM})
+  }).catch(()=>{});
+  // En mode démo : marquer comme envoyé visuellement
+  console.log('SMS →', telFull, ':', msg);
+}
+
+// ─────────────────────────────────────────
+// ADD RESERVATION
+// ─────────────────────────────────────────
+let editingId = null;
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Nouvelle réservation';
+  document.getElementById('f-nom').value = '';
+  document.getElementById('f-tel').value = '';
+  document.getElementById('f-date').value = todayStr();
+  openModal('modal-add');
+}
+function openAddModalForTable(tableId) {
+  openAddModal();
+  document.getElementById('f-table').value = tableId;
+}
+function openWaitlistModal() {
+  document.getElementById('w-nom').value = '';
+  document.getElementById('w-tel').value = '';
+  document.getElementById('w-date').value = todayStr();
+  openModal('modal-waitlist');
+}
+
+function assignBestTable(couverts, date, excludeResaId) {
+  const n = parseInt(couverts) || 1;
+  const resas = getData('resas', []);
+  // Tables occupied on that date (active reservations)
+  const occupiedOnDate = new Set(
+    resas
+      .filter(r => r.date === date && r.statut !== 'annulee' && r.id !== excludeResaId && r.table)
+      .map(r => parseInt(r.table))
+  );
+  // Find smallest table that fits, not already taken that day
+  const candidates = TABLES_CONFIG
+    .filter(t => t.capacite >= n && !occupiedOnDate.has(t.id))
+    .sort((a, b) => a.capacite - b.capacite);
+  return candidates.length ? candidates[0].id : null;
+}
+
+function saveReservation() {
+  const nom = document.getElementById('f-nom').value.trim();
+  const tel = document.getElementById('f-tel').value.trim();
+  const date = document.getElementById('f-date').value;
+  const heure = document.getElementById('f-heure').value;
+  const couverts = document.getElementById('f-couverts').value;
+  let table = document.getElementById('f-table').value;
+  const source = document.getElementById('f-source').value;
+  if (!nom || !tel || !date) { showToast('Remplis tous les champs'); return; }
+  // Auto-assign table if none selected
+  if (!table) table = assignBestTable(couverts, date, editingId || null);
+  const resas = getData('resas',[]);
+  if (editingId) {
+    const idx = resas.findIndex(r=>r.id===editingId);
+    if (idx!==-1) { resas[idx]={...resas[idx],nom,telephone:tel,date,heure,couverts,table,source}; }
+  } else {
+    resas.push({id:uid(),nom,telephone:tel,date,heure,couverts,table,statut:'confirmee',source,reminderSent:false});
+  }
+  setData('resas', resas);
+  closeModal('modal-add');
+  renderAll();
+  showToast('Réservation ajoutée ✓');
+}
+
+function saveWaitlist() {
+  const nom = document.getElementById('w-nom').value.trim();
+  const tel = document.getElementById('w-tel').value.trim();
+  const date = document.getElementById('w-date').value;
+  const couverts = document.getElementById('w-couverts').value;
+  if (!nom || !tel || !date) { showToast('Remplis tous les champs'); return; }
+  const list = getData('waitlist',[]);
+  list.push({id:uid(),nom,telephone:tel,date,couverts,createdAt:Date.now()});
+  setData('waitlist', list);
+  closeModal('modal-waitlist');
+  renderWaitlist();
+  showToast(nom+' ajouté à la liste ✓');
+}
+
+// ─────────────────────────────────────────
+// NAV & MODALS
+// ─────────────────────────────────────────
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const navEl = document.getElementById('nav-'+name);
+  if (navEl) navEl.classList.add('active');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click', e=>{
+    if (e.target === overlay) overlay.classList.remove('active');
+  });
+});
+
+// Phone auto-format
+document.getElementById('f-tel').addEventListener('input',function(){
+  const d=this.value.replace(/\D/g,'').slice(0,10);
+  const p=d.match(/.{1,2}/g);
+  this.value=p?p.join('-'):'';
+});
+document.getElementById('w-tel').addEventListener('input',function(){
+  const d=this.value.replace(/\D/g,'').slice(0,10);
+  const p=d.match(/.{1,2}/g);
+  this.value=p?p.join('-'):'';
+});
+</script>
+</body>
+</html>
